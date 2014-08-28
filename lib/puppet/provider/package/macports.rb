@@ -4,9 +4,7 @@ require 'puppet/provider/command'
 Puppet::Type.type(:package).provide :macports, :parent => Puppet::Provider::Package do
   desc "Package management using MacPorts on OS X.
 
-    Supports MacPorts versions and revisions, but not variants.
-    Variant preferences may be specified using
-    [the MacPorts variants.conf file](http://guide.macports.org/chunked/internals.configuration-files.html#internals.configuration-files.variants-conf).
+    Supports MacPorts versions, revisions and variants.
 
     When specifying a version in the Puppet DSL, only specify the version, not the revision.
     Revisions are only used internally for ensuring the latest version/revision of a port.
@@ -25,9 +23,9 @@ Puppet::Type.type(:package).provide :macports, :parent => Puppet::Provider::Pack
 
 
   def self.parse_installed_query_line(line)
-    regex = /(\S+)\s+@(\S+)_(\d+).*\(active\)/
-    fields = [:name, :ensure, :revision]
-    hash_from_line(line, regex, fields)
+    regex = /(\w+)\s+@(\S+)_(\d+)(\+.*)\(active\)^/
+    fields = [:name, :ensure, :revision, :variants]
+    hash_from_line(line, regex, fields, variants)
   end
 
   def self.parse_info_query_line(line)
@@ -70,7 +68,7 @@ Puppet::Type.type(:package).provide :macports, :parent => Puppet::Provider::Pack
   end
 
   def query
-    result = self.class.parse_installed_query_line(execute([command(:port), "-q", :installed, @resource[:name]], :failonfail => false, :combine => false))
+    result = self.class.parse_installed_query_line(execute([command(:port), "-q", :installed, :active, @resource[:name]], :failonfail => false, :combine => false))
     return {} if result.nil?
     return result
   end
